@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2f5fd0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ジム記録">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>ジム記録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+<style id="css">
+/* Layout: counts, quick check for today, month calendar with "ジム" band and parts, then the selected day as a memo (parts, exercises, edit form), then backup */
+:root{
+  --bg:#f2f4f7; --surface:#ffffff; --ink:#1b2230; --muted:#667085; --line:#dde2ea;
+  --accent:#2f5fd0; --on-accent:#ffffff; --accent-soft:#e2e9fa; --sun:#c0582b;
+  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --surface:#1b212b; --ink:#e7ebf2; --muted:#98a2b3; --line:#2c3441;
+  --accent:#6f93ee; --on-accent:#0f1420; --accent-soft:#232f4a; --sun:#ec9a72; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1b212b; --ink:#e7ebf2; --muted:#98a2b3; --line:#2c3441;
+  --accent:#6f93ee; --on-accent:#0f1420; --accent-soft:#232f4a; --sun:#ec9a72; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6}
+#app{max-width:720px;margin:0 auto;padding:28px 16px 60px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-size:1.7rem;margin:0;line-height:1.2}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 12px;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pill b{display:block;font-family:var(--display);font-size:1.3rem;color:var(--ink);line-height:1.2}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:12px}
+.card .when{font-size:.85rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card .when button{font:inherit;font-size:.85rem;background:none;border:none;color:var(--accent);cursor:pointer;padding:0}
+.check{font:inherit;width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;border-radius:12px;border:2px dashed var(--accent);background:var(--surface);color:var(--accent);font-family:var(--display);font-size:1.15rem;cursor:pointer}
+.check .box{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid currentColor;display:grid;place-items:center}
+.check.done{border-style:solid;background:var(--accent);color:var(--on-accent)}
+.check.done .box::after{content:"";width:8px;height:14px;border:solid currentColor;border-width:0 3px 3px 0;transform:translateY(-2px) rotate(45deg)}
+.plabel{font-size:.85rem;color:var(--muted);margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:.95rem;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.chip.add{color:var(--muted);border-style:dashed;background:transparent}
+.addpart{display:flex;gap:8px;margin-top:8px}
+.addpart input{font:inherit;flex:1;min-width:0;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.addpart button{font:inherit;padding:7px 14px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700;cursor:pointer}
+.logs{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.ent{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.ent .nm{font-weight:700;overflow-wrap:anywhere}
+.ent .dt{font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ent button{font:inherit;font-size:.8rem;background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;white-space:nowrap}
+.noent{font-size:.9rem;color:var(--muted);margin:0}
+.entform{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.frow{display:flex;gap:8px;flex-wrap:wrap}
+.entform label{display:flex;flex-direction:column;font-size:.75rem;color:var(--muted);gap:2px}
+.entform label.grow{flex:1;min-width:150px}
+.entform input{font:inherit;font-size:1rem;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.entform input.num{width:80px}
+.entform .prev{font-size:.8rem;color:var(--muted);min-height:1.2em}
+.entform button[type=submit]{font:inherit;align-self:flex-start;padding:8px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700;cursor:pointer}
+.ent .cnt{font-size:.75rem;font-weight:500;color:var(--muted);margin-left:8px}
+.setlist{margin:2px 0 0;padding-left:1.6em;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.sets{display:flex;flex-direction:column;gap:6px}
+.setrow{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.setrow .sn{font-size:.8rem;color:var(--muted);width:4.5em;padding-bottom:10px}
+.setrow .rm{font:inherit;width:34px;height:38px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.addset,.copyprev{font:inherit;font-size:.85rem;align-self:flex-start;padding:5px 12px;border-radius:999px;border:1px dashed var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.copyprev{margin-left:6px;padding:2px 10px;font-size:.8rem}
+.dayttl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dayttl h2{margin:0;font-family:var(--display);font-size:1.2rem;display:flex;align-items:center;gap:8px}
+.dayttl .tg{font-family:var(--body);font-size:.75rem;background:var(--ink);color:var(--surface);border-radius:999px;padding:1px 8px}
+.link{font:inherit;font-size:.85rem;background:none;border:none;color:var(--accent);cursor:pointer;padding:2px 4px}
+.link.danger{color:var(--sun);margin-left:auto}
+.primary{font:inherit;align-self:flex-start;padding:9px 18px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700;cursor:pointer}
+.memo{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.memo .plabel{margin:0}
+.memolist{list-style:none;margin:0;padding:4px 16px;background:var(--bg);border-radius:10px;border-left:4px solid var(--accent)}
+.memolist li{padding:10px 0;border-bottom:1px dashed var(--line)}
+.memolist li:last-child{border-bottom:none}
+.memolist li.editing .mn{color:var(--accent)}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mn{font-weight:700;font-size:1.02rem;overflow-wrap:anywhere}
+.ml{font-size:.95rem;font-variant-numeric:tabular-nums;padding-left:1em;overflow-wrap:anywhere}
+.ml.note{color:var(--muted)}
+.entform{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+.entform .plabel{margin:0;font-weight:700;color:var(--ink)}
+.entform .frow{align-items:center}
+.backup h2{margin:0 0 4px;font-size:1rem}
+.note2{font-size:.85rem;color:var(--muted);margin:0 0 10px}
+.backup .frow{display:flex;gap:8px;flex-wrap:wrap}
+#bkmsg{margin:8px 0 0}
+.loading{color:var(--muted);text-align:center;padding:40px 0;margin:0}
+.filebtn{display:inline-flex;align-items:center;cursor:pointer;position:relative}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.backup .notice{margin-top:10px}
+.warn{font-size:.85rem;color:var(--sun);margin:0;text-align:center}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.monthbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.monthbar h2{margin:0;font-family:var(--display);font-size:1.2rem}
+.nav{font:inherit;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:8px;width:38px;height:34px;cursor:pointer}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 44px;gap:4px}
+.wd{font-size:.75rem;color:var(--muted);text-align:center}
+.wd.sun{color:var(--sun)}
+.day{min-height:66px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:4px;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;min-width:0}
+.day:hover{border-color:var(--accent)}
+.day.other{opacity:.4}
+.day.future{cursor:default;background:var(--bg)}
+.day.future:hover{border-color:var(--line)}
+.day.sel{outline:2px solid var(--accent);outline-offset:1px}
+.day .n{font-size:.8rem;font-variant-numeric:tabular-nums;align-self:flex-start;min-width:22px;text-align:center;border-radius:999px}
+.day.today .n{background:var(--ink);color:var(--surface)}
+.marks{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;min-width:0}
+.band{background:var(--accent);color:var(--on-accent);font-size:.75rem;font-weight:700;line-height:1;padding:4px 5px;border-radius:4px;white-space:nowrap}
+.parts{font-size:.68rem;font-weight:700;color:var(--accent);line-height:1.25;overflow-wrap:anywhere;min-width:0}
+.wk{display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center;line-height:1.2;font-variant-numeric:tabular-nums}
+.wk b{font-family:var(--display);font-size:1rem;color:var(--ink)}
+.wk.zero b{color:var(--muted)}
+.hint{font-size:.85rem;color:var(--muted);margin:10px 0 0}
+.tally{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.9rem;font-variant-numeric:tabular-nums}
+.tally .t{color:var(--muted)}
+.tally b{color:var(--ink)}
+.notice{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-size:.9rem}
+.ghost{font:inherit;font-size:.85rem;padding:6px 12px;border-radius:9px;background:transparent;color:var(--muted);border:1px solid var(--line);cursor:pointer}
+.status{font-size:.8rem;color:var(--muted);text-align:center}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (max-width:480px){.cal{grid-template-columns:repeat(7,minmax(0,1fr)) 34px;gap:3px}.day{min-height:58px;padding:3px}.band{font-size:.66rem;padding:3px 2px;text-align:center;width:100%}.parts{font-size:.6rem}}
+@media (prefers-reduced-motion:no-preference){.day,.check,.chip{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script id="appjs">
+(function(){
+  var state={days:{},logs:{},parts:null,sample:false};
+  var ready=false, loadFail='', saveTimer=null, statusMsg='', adding=false, confirmUncheck=false, formOpen=false, editIdx=-1, importArmed=false, pendingImport=null;
+  var dirty={}, writing=false, localOnly=false;
+  var draft={n:'',sets:[{kg:'',r:''}],memo:''};
+  function resetDraft(){draft={n:'',sets:[{kg:'',r:''}],memo:''};}
+  // Each exercise keeps one row per set; older entries stored kg/r/s once
+  function setsOf(e){if(e.sets)return e.sets;if(e.kg==null&&!e.r)return [];var a=[];for(var i=0;i<(e.s||1);i++)a.push({kg:e.kg,r:e.r});return a;}
+  function fmtSet(x){return [(x.kg!=null?(Math.round(x.kg*10)/10)+'kg':''),(x.r?x.r+'回':'')].filter(Boolean).join(' × ');}
+  function setsText(e){var s=setsOf(e),out=[],i=0;
+    while(i<s.length){var j=i;while(j+1<s.length&&s[j+1].kg===s[i].kg&&s[j+1].r===s[i].r)j++;var t=fmtSet(s[i]);if(t)out.push(t+(j>i?' × '+(j-i+1)+'セット':''));i=j+1;}
+    return out.join('、');}
+  function detail(e){var t=setsText(e);return t+(e.memo?(t?'　':'')+e.memo:'');}
+  function lastOf(n,before){var ks=Object.keys(state.logs).filter(function(k){return k<before;}).sort().reverse();
+    for(var i=0;i<ks.length;i++){var l=state.logs[ks[i]];for(var j=l.length-1;j>=0;j--)if(l[j].n===n)return {k:ks[i],e:l[j]};}return null;}
+  var WD=['日','月','火','水','木','金','土'];
+  var DEFAULT_PARTS=['脚','胸','背中','お尻','肩','腕','お腹','有酸素'];
+  function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+  function parse(k){var p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+  var today=new Date();today.setHours(0,0,0,0);var TODAY=key(today);
+  var view=new Date(today.getFullYear(),today.getMonth(),1), sel=TODAY;
+
+  function normalize(){
+    if(!state.days)state.days={};
+    if(!state.parts)state.parts=DEFAULT_PARTS.slice();
+    if(!state.logs)state.logs={};
+    Object.keys(state.days).forEach(function(k){if(!Array.isArray(state.days[k]))state.days[k]=[];});
+  }
+  normalize();
+
+  /* Storage: records are kept in this browser (localStorage) on each person's own device.
+     Back up with the CSV button; the same CSV can be read back in. */
+  var KEY='gym-log-v1', storageOk=true;
+  function loadLocal(){try{var s=localStorage.getItem(KEY);if(s){state=JSON.parse(s);normalize();}}catch(e){storageOk=false;}}
+  function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state));statusMsg='';}catch(e){storageOk=false;statusMsg='このブラウザでは保存できませんでした。プライベートブラウズを使っていないか確かめてください。';}}
+  function changed(){saveLocal();render();}
+  function start(){loadLocal();ready=true;render();}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function count(a,b){var n=0;for(var d=new Date(a);d<=b;d=addDays(d,1))if(state.days[key(d)])n++;return n;}
+  function md(d){return (d.getMonth()+1)+'月'+d.getDate()+'日';}
+
+  function render(){
+    var h='',wkStart=addDays(today,-today.getDay()),ms=new Date(today.getFullYear(),today.getMonth(),1);
+    var avg=(count(addDays(wkStart,-28),addDays(wkStart,-1))/4).toFixed(1);
+    h+='<header><h1>ジム記録</h1><div class="pills"><div class="pill"><b>'+count(wkStart,today)+'回</b>今週</div><div class="pill"><b>'+count(ms,today)+'回</b>今月</div><div class="pill"><b>'+avg+'回</b>直近4週の週平均</div></div></header>';
+    if(!ready){h+='<p class="loading">'+(loadFail||'記録を読み込んでいます…')+'</p>';document.getElementById('app').innerHTML=h;return;}
+    if(state.sample)h+='<div class="notice"><span>いま入っている記録はサンプルです。自分の記録を始めるときは消してください。</span><button class="ghost" id="clearSample">サンプルを消す</button></div>';
+
+    // Quick check for today
+    var tdone=!!state.days[TODAY];
+    h+='<button class="check'+(tdone?' done':'')+'" id="checkToday" aria-pressed="'+tdone+'"><span class="box"></span>'+(tdone?'今日はジムに行きました':'今日ジムに行ったらチェック')+'</button>';
+    if(confirmUncheck===TODAY&&sel!==TODAY)h+='<p class="warn">チェックを外すと、今日の種目メモも消えます。よければもう一度押してください。</p>';
+
+    // Calendar
+    var y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),gs=addDays(first,-first.getDay()),last=new Date(y,m+1,0);
+    var weeks=Math.ceil((first.getDay()+last.getDate())/7);
+    h+='<section><div class="monthbar"><button class="nav" id="prev" aria-label="前の月">‹</button><h2>'+y+'年'+(m+1)+'月</h2><button class="nav" id="next" aria-label="次の月">›</button></div><div class="cal">';
+    WD.forEach(function(w,i){h+='<div class="wd'+(i===0?' sun':'')+'">'+w+'</div>';});h+='<div class="wd">週</div>';
+    for(var w=0;w<weeks;w++){var c=0;
+      for(var i=0;i<7;i++){var d=addDays(gs,w*7+i),k=key(d),g=state.days[k],fut=d>today;if(g)c++;
+        h+='<button class="day'+(d.getMonth()!==m?' other':'')+(k===TODAY?' today':'')+(fut?' future':'')+(k===sel?' sel':'')+'"'+(fut?' disabled':' data-day="'+k+'"')+' aria-label="'+md(d)+(g?' ジム '+esc(g.join('、')):'')+'"><span class="n">'+d.getDate()+'</span>';
+        if(g)h+='<span class="marks"><span class="band">ジム</span>'+(g.length?'<span class="parts">'+esc(g.join('・'))+'</span>':'')+'</span>';
+        h+='</button>';}
+      h+='<div class="wk'+(c?'':' zero')+'"><span><b>'+c+'</b><br>回</span></div>';}
+    h+='</div>';
+    var tally={};for(var d2=new Date(first);d2<=last;d2=addDays(d2,1)){(state.days[key(d2)]||[]).forEach(function(p){tally[p]=(tally[p]||0)+1;});}
+    var tk=Object.keys(tally).sort(function(a,b){return tally[b]-tally[a];});
+    h+='<div class="tally"><span class="t">'+(m+1)+'月の部位</span>'+(tk.length?tk.map(function(p){return '<span>'+esc(p)+' <b>'+tally[p]+'回</b></span>';}).join(''):'<span class="t">まだありません</span>')+'</div></section>';
+
+    // Selected day, shown below the calendar like a memo
+    var sd=parse(sel),parts=state.days[sel],done=!!parts,L=state.logs[sel]||[];
+    h+='<div class="card" id="card"><div class="dayttl"><h2>'+md(sd)+'（'+WD[sd.getDay()]+'）'+(sel===TODAY?'<span class="tg">今日</span>':'')+'</h2>'+
+      (done?'<button class="link" id="check">チェックを外す</button>':'')+'</div>';
+    if(confirmUncheck===sel)h+='<p class="warn">チェックを外すと、この日の種目メモも消えます。よければもう一度押してください。</p>';
+    if(!done){
+      h+='<p class="noent">この日はジムの記録がありません。</p><button class="primary" id="check">この日ジムに行った</button>';
+    }else{
+      h+='<div><p class="plabel">鍛えた部位（いくつでも選べます）</p><div class="chips">';
+      state.parts.forEach(function(p){var on=parts.indexOf(p)>=0;h+='<button class="chip'+(on?' on':'')+'" data-part="'+esc(p)+'" aria-pressed="'+on+'">'+esc(p)+'</button>';});
+      if(!adding)h+='<button class="chip add" id="addOpen">＋ 部位を追加</button>';
+      h+='</div>';
+      if(adding)h+='<form class="addpart" id="addForm"><input id="newPart" maxlength="10" placeholder="例：ふくらはぎ" aria-label="追加する部位の名前"><button type="submit">追加</button></form>';
+      h+='</div>';
+      h+='<div class="memo"><p class="plabel">やったこと</p>';
+      if(L.length){h+='<ul class="memolist">';L.forEach(function(e,i){var ss=setsOf(e),same=ss.length<2||ss.every(function(x){return x.kg===ss[0].kg&&x.r===ss[0].r;});
+        h+='<li'+(editIdx===i?' class="editing"':'')+'><div class="mhead"><span class="mn">'+esc(e.n)+'</span><button class="link" data-edit="'+i+'">'+(editIdx===i?'編集中':'編集')+'</button></div>';
+        if(ss.length){if(same)h+='<div class="ml">'+esc(setsText(e))+'</div>';else ss.forEach(function(x,j){h+='<div class="ml">'+(j+1)+'セット目　'+esc(fmtSet(x)||'—')+'</div>';});}
+        if(e.memo)h+='<div class="ml note">'+esc(e.memo)+'</div>';
+        h+='</li>';});h+='</ul>';}
+      else if(!formOpen)h+='<p class="noent">まだ何も書いていません。</p>';
+      if(formOpen)h+=formHtml();
+      else h+='<button class="addset" id="openForm">＋ 種目を書く</button>';
+      h+='</div>';
+    }
+    h+='</div>';
+
+    // Backup
+    h+='<section class="backup"><h2>記録の保存</h2><p class="note2">記録はこの端末の中にあります。CSVで保存しておけば、別のスマホやブラウザでも「CSVから読み込む」で元に戻せます。</p><div class="frow">'+
+      '<button class="ghost" id="dlCsv">CSVファイルで保存</button><button class="ghost" id="copyText">テキストでコピー</button><label class="ghost filebtn" for="csvIn">CSVから読み込む<input type="file" id="csvIn" accept=".csv,text/csv"></label></div>'+
+      (pendingImport?'<div class="notice"><span>'+Object.keys(pendingImport.days).length+'日分の記録を読み込みます。今の記録は置き換わります。</span><button class="primary" id="doImport">読み込む</button><button class="ghost" id="cancelImport">やめる</button></div>':'')+
+      '<p class="note2" id="bkmsg"></p></section>';
+    h+='<div class="status" id="status"></div>';
+    document.getElementById('app').innerHTML=h;renderStatus();
+    if(adding){var inp=document.getElementById('newPart');if(inp)inp.focus();}
+  }
+  function formHtml(){
+    var names={};Object.keys(state.logs).forEach(function(k){state.logs[k].forEach(function(e){names[e.n]=1;});});
+    var h='<form class="entform" id="entForm"><p class="plabel">'+(editIdx>=0?'「'+esc(state.logs[sel][editIdx].n)+'」を直す':'種目を書く')+'</p>'+
+      '<div class="frow"><label class="grow" for="e-n">種目<input id="e-n" list="exnames" maxlength="30" placeholder="例：スクワット" required autocomplete="off" value="'+esc(draft.n)+'"></label></div>'+
+      '<datalist id="exnames">'+Object.keys(names).map(function(n){return '<option value="'+esc(n)+'">';}).join('')+'</datalist>'+
+      '<div class="prev" id="e-prev">'+(editIdx>=0?'':prevHtml())+'</div><div class="sets">';
+    draft.sets.forEach(function(x,i){
+      h+='<div class="setrow"><span class="sn">'+(i+1)+'セット目</span>'+
+        '<label for="s-kg-'+i+'">重さ (kg)<input class="num" id="s-kg-'+i+'" data-si="'+i+'" data-sf="kg" type="number" inputmode="decimal" step="0.5" min="0" value="'+esc(x.kg)+'"></label>'+
+        '<label for="s-r-'+i+'">回数<input class="num" id="s-r-'+i+'" data-si="'+i+'" data-sf="r" type="number" inputmode="numeric" min="0" value="'+esc(x.r)+'"></label>'+
+        (draft.sets.length>1?'<button type="button" class="rm" data-rmset="'+i+'" aria-label="'+(i+1)+'セット目を消す">×</button>':'')+'</div>';});
+    h+='</div><button type="button" class="addset" id="addSet">＋ セットを追加</button>'+
+      '<div class="frow"><label class="grow" for="e-memo">メモ（任意）<input id="e-memo" maxlength="80" placeholder="例：ランニング20分、最後きつかった" value="'+esc(draft.memo)+'"></label></div>'+
+      '<div class="frow"><button type="submit" class="primary">'+(editIdx>=0?'保存する':'書く')+'</button><button type="button" class="ghost" id="cancelForm">やめる</button>'+
+      (editIdx>=0?'<button type="button" class="link danger" data-delent="'+editIdx+'" data-c="0">この種目を消す</button>':'')+'</div></form>';
+    return h;
+  }
+  function prevHtml(){var r=draft.n?lastOf(draft.n,sel):null;if(!r||!setsOf(r.e).length)return r?esc('前回（'+(+r.k.slice(5,7))+'/'+(+r.k.slice(8))+'）：'+detail(r.e)):'';
+    return esc('前回（'+(+r.k.slice(5,7))+'/'+(+r.k.slice(8))+'）：'+detail(r.e))+' <button type="button" class="copyprev" id="copyPrev">前回と同じセットを入れる</button>';}
+  function renderStatus(){var el=document.getElementById('status');if(el)el.textContent=statusMsg||'記録はこの端末のブラウザの中だけに保存されます。機種変更などに備えて、ときどき「CSVファイルで保存」をしておくと安心です。';}
+
+  function closeForm(){formOpen=false;editIdx=-1;resetDraft();}
+  function toggleDay(k){
+    if(state.days[k]){
+      if((state.logs[k]||[]).length&&confirmUncheck!==k){confirmUncheck=k;render();return;}
+      delete state.days[k];delete state.logs[k];if(k===sel)closeForm();}
+    else state.days[k]=[];
+    adding=false;confirmUncheck=false;changed();
+  }
+  function showCard(){var card=document.getElementById('card');if(!card)return;var r=card.getBoundingClientRect();
+    if(r.top>window.innerHeight-120||r.top<0)card.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}
+  function allText(){
+    var ks=Object.keys(state.days).sort(),out=[];
+    ks.forEach(function(k){var d=parse(k),p=state.days[k],L=state.logs[k]||[];
+      out.push(d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+'（'+WD[d.getDay()]+'）ジム'+(p.length?'　'+p.join('・'):''));
+      L.forEach(function(e){out.push('・'+e.n+(detail(e)?'　'+detail(e):''));});});
+    return out.join('\n');
+  }
+  function csvCell(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+  function allCsv(){
+    var rows=[['日付','曜日','部位','種目','セット','重さ(kg)','回数','メモ']];
+    Object.keys(state.days).sort().forEach(function(k){var d=parse(k),p=state.days[k].join('・'),L=state.logs[k]||[];
+      if(!L.length)rows.push([k,WD[d.getDay()],p,'','','','','']);
+      L.forEach(function(e){var ss=setsOf(e);
+        if(!ss.length)rows.push([k,WD[d.getDay()],p,e.n,'','','',e.memo||'']);
+        ss.forEach(function(x,j){rows.push([k,WD[d.getDay()],p,e.n,j+1,x.kg==null?'':x.kg,x.r||'',j===0?(e.memo||''):'']);});});});
+    return '﻿'+rows.map(function(r){return r.map(csvCell).join(',');}).join('\r\n');
+  }
+  function parseCsv(text){
+    text=text.replace(/^\uFEFF/,'');var rows=[],row=[],cell='',q=false;
+    for(var i=0;i<text.length;i++){var c=text[i];
+      if(q){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;}
+      else if(c==='"')q=true;else if(c===','){row.push(cell);cell='';}
+      else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';}
+      else cell+=c;}
+    if(cell!==''||row.length){row.push(cell);rows.push(row);}
+    var days={},logs={},cur={};
+    rows.slice(1).forEach(function(r){var k=(r[0]||'').trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(k))return;
+      days[k]=(r[2]||'').split('・').filter(Boolean);var n=(r[3]||'').trim();if(!n)return;
+      var L=logs[k]=logs[k]||[],set=+r[4]||0;
+      if(set<=1||!cur[k]||cur[k].n!==n){cur[k]={n:n};L.push(cur[k]);}
+      var e=cur[k],o={};if((r[5]||'').trim()!=='')o.kg=+r[5];if((r[6]||'').trim()!=='')o.r=+r[6];
+      if(set&&(o.kg!=null||o.r!=null))(e.sets=e.sets||[]).push(o);if((r[7]||'').trim())e.memo=(e.memo?e.memo+' ':'')+r[7].trim();});
+    return {days:days,logs:logs};
+  }
+  document.addEventListener('change',function(e){if(e.target.id!=='csvIn')return;var f=e.target.files&&e.target.files[0];if(!f)return;
+    var rd=new FileReader();rd.onload=function(){try{var p=parseCsv(String(rd.result));if(!Object.keys(p.days).length){bk('記録が見つかりませんでした。このページで保存したCSVを選んでください。');return;}pendingImport=p;render();}catch(err){bk('読み込めませんでした。');}};rd.readAsText(f);});
+  function bk(msg){var el=document.getElementById('bkmsg');if(el)el.textContent=msg;}
+
+  document.addEventListener('click',function(e){var t;
+    if((t=e.target.closest('[data-day]'))){if(sel!==t.dataset.day)closeForm();sel=t.dataset.day;adding=false;confirmUncheck=false;render();showCard();return;}
+    if(e.target.closest('#checkToday')){toggleDay(TODAY);return;}
+    if(e.target.closest('#check')){toggleDay(sel);return;}
+    if((t=e.target.closest('[data-delent]'))){if(t.dataset.c==='0'){t.dataset.c='1';t.textContent='本当に消す';return;}
+      var l=state.logs[sel];l.splice(+t.dataset.delent,1);if(!l.length)delete state.logs[sel];closeForm();changed();return;}
+    if((t=e.target.closest('[data-edit]'))){var i=+t.dataset.edit,en=state.logs[sel][i];
+      editIdx=i;formOpen=true;draft={n:en.n,memo:en.memo||'',sets:setsOf(en).map(function(x){return {kg:x.kg==null?'':String(x.kg),r:x.r?String(x.r):''};})};
+      if(!draft.sets.length)draft.sets=[{kg:'',r:''}];render();var f=document.getElementById('entForm');if(f)f.scrollIntoView({block:'nearest'});return;}
+    if(e.target.id==='openForm'){closeForm();formOpen=true;render();var n=document.getElementById('e-n');if(n)n.focus();return;}
+    if(e.target.id==='cancelForm'){closeForm();render();return;}
+    if((t=e.target.closest('[data-part]'))){var a=state.days[sel],p=t.dataset.part,pi=a.indexOf(p);if(pi>=0)a.splice(pi,1);else a.push(p);
+      a.sort(function(x,y){return state.parts.indexOf(x)-state.parts.indexOf(y);});changed();return;}
+    if(e.target.id==='addOpen'){adding=true;render();return;}
+    if(e.target.id==='prev'){view=new Date(view.getFullYear(),view.getMonth()-1,1);render();return;}
+    if(e.target.id==='next'){view=new Date(view.getFullYear(),view.getMonth()+1,1);render();return;}
+    if(e.target.id==='clearSample'){state.sample=false;state.days={};state.logs={};closeForm();changed();return;}
+    if(e.target.id==='addSet'){var ls=draft.sets[draft.sets.length-1];draft.sets.push({kg:ls.kg,r:ls.r});render();focusSet(draft.sets.length-1);return;}
+    if((t=e.target.closest('[data-rmset]'))){draft.sets.splice(+t.dataset.rmset,1);render();return;}
+    if(e.target.id==='copyPrev'){var r=lastOf(draft.n,sel);if(r){draft.sets=setsOf(r.e).map(function(x){return {kg:x.kg==null?'':String(x.kg),r:x.r?String(x.r):''};});render();focusSet(0);}return;}
+    if(e.target.id==='copyText'){var txt=allText();
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){bk('コピーしました。メモアプリなどに貼り付けて保管できます。');},function(){bk('コピーできませんでした。');});
+      else bk('この画面ではコピーできませんでした。');return;}
+    if(e.target.id==='dlCsv'){try{var blob=new Blob([allCsv()],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ジム記録_'+TODAY+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);bk('CSVファイルを保存しました。GoogleスプレッドシートやExcelで開けます。');}catch(err){bk('保存できませんでした。');}return;}
+    if(e.target.id==='doImport'&&pendingImport){var p=pendingImport;pendingImport=null;state.days=p.days;state.logs=p.logs;
+      Object.keys(p.days).forEach(function(k){p.days[k].forEach(function(x){if(state.parts.indexOf(x)<0)state.parts.push(x);});});state.sample=false;closeForm();changed();bk('読み込みました。');return;}
+    if(e.target.id==='cancelImport'){pendingImport=null;render();return;}
+  });
+  // Keep what is being typed in a draft so re-renders don't lose it; show the previous record for the exercise
+  document.addEventListener('input',function(e){var t=e.target;
+    if(t.id==='e-n'){draft.n=t.value.trim();if(editIdx<0)document.getElementById('e-prev').innerHTML=prevHtml();return;}
+    if(t.id==='e-memo'){draft.memo=t.value;return;}
+    if(t.dataset&&t.dataset.si!=null){draft.sets[+t.dataset.si][t.dataset.sf]=t.value;}
+  });
+  function focusSet(i){var el=document.getElementById('s-kg-'+i);if(el)el.focus();}
+  document.addEventListener('submit',function(e){
+    if(e.target.id==='entForm'){e.preventDefault();
+      var n=draft.n||document.getElementById('e-n').value.trim();if(!n)return;var it={n:n};
+      var ss=draft.sets.filter(function(x){return String(x.kg).trim()!==''||String(x.r).trim()!=='';}).map(function(x){var o={};if(String(x.kg).trim()!=='')o.kg=+x.kg;if(String(x.r).trim()!=='')o.r=+x.r;return o;});
+      if(ss.length)it.sets=ss;if(draft.memo.trim())it.memo=draft.memo.trim();
+      var l=state.logs[sel]=state.logs[sel]||[];
+      if(editIdx>=0)l[editIdx]=it;else l.push(it);
+      closeForm();changed();return;}
+    if(e.target.id!=='addForm')return;e.preventDefault();
+    var v=document.getElementById('newPart').value.trim();adding=false;
+    if(v){if(state.parts.indexOf(v)<0)state.parts.push(v);var a=state.days[sel];if(a&&a.indexOf(v)<0)a.push(v);changed();}else render();
+  });
+  start();
+})();
+</script>
+</body>
+</html>

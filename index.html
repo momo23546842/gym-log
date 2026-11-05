@@ -102,6 +102,12 @@ h1{font-family:var(--display);font-size:1.7rem;margin:0;line-height:1.2}
 .filebtn{display:inline-flex;align-items:center;cursor:pointer;position:relative}
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
 .backup .notice{margin-top:10px}
+.mstats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:stretch}
+.ms{flex:1;min-width:130px;background:var(--accent-soft);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column}
+.ml2{font-size:.78rem;color:var(--muted)}
+.ms b{font-family:var(--display);font-size:1.5rem;line-height:1.2;color:var(--ink);font-variant-numeric:tabular-nums}
+.ms small{font-size:.8rem;margin-left:2px}
+.msnote{flex-basis:100%;margin:0;font-size:.75rem;color:var(--muted)}
 .warn{font-size:.85rem;color:var(--sun);margin:0;text-align:center}
 section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
 .monthbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
@@ -196,7 +202,13 @@ section{background:var(--surface);border:1px solid var(--line);border-radius:14p
     // Calendar
     var y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),gs=addDays(first,-first.getDay()),last=new Date(y,m+1,0);
     var weeks=Math.ceil((first.getDay()+last.getDate())/7);
-    h+='<section><div class="monthbar"><button class="nav" id="prev" aria-label="前の月">‹</button><h2>'+y+'年'+(m+1)+'月</h2><button class="nav" id="next" aria-label="次の月">›</button></div><div class="cal">';
+    h+='<section><div class="monthbar"><button class="nav" id="prev" aria-label="前の月">‹</button><h2>'+y+'年'+(m+1)+'月</h2><button class="nav" id="next" aria-label="次の月">›</button></div>';
+    // Stats for the month on screen: visits, and visits per week over the days that have passed
+    var mEnd=last<today?last:today,mDays=first>today?0:Math.round((mEnd-first)/864e5)+1,mCount=mDays?count(first,mEnd):0;
+    var mAvg=mDays?(mCount/(mDays/7)).toFixed(1):'—';
+    h+='<div class="mstats"><div class="ms"><span class="ml2">'+(m+1)+'月に行った回数</span><b>'+mCount+'<small>回</small></b></div>'+
+      '<div class="ms"><span class="ml2">'+(m+1)+'月の週平均</span><b>'+mAvg+(mDays?'<small>回</small>':'')+'</b></div>'+
+      (mDays&&mEnd<last?'<p class="msnote">'+(mEnd.getMonth()+1)+'月'+mEnd.getDate()+'日までの'+mDays+'日間で計算</p>':'')+'</div><div class="cal">';
     WD.forEach(function(w,i){h+='<div class="wd'+(i===0?' sun':'')+'">'+w+'</div>';});h+='<div class="wd">週</div>';
     for(var w=0;w<weeks;w++){var c=0;
       for(var i=0;i<7;i++){var d=addDays(gs,w*7+i),k=key(d),g=state.days[k],fut=d>today;if(g)c++;

@@ -9,6 +9,8 @@ export const app = {
   today,
   todayKey: toKey(today),
   ui: {
+    /** screen picked in the bottom nav: 'home' | 'rec' | 'ana' | 'set' */
+    screen: 'home',
     /** month shown in the calendar */
     view: new Date(today.getFullYear(), today.getMonth(), 1),
     /** selected day ("YYYY-MM-DD") */

@@ -1,8 +1,9 @@
-// The selected day, shown below the calendar like a memo: parts, exercises, and the writing form.
+// The selected day: below the calendar on the home screen, and on its own on the 記録 screen. Parts, exercises, and the writing form.
 import { app } from '../app.js';
 import { WEEKDAYS, fromKey, monthDay, shortDate } from '../lib/dates.js';
 import { setsOf, formatSet, setsText, detailText, previousSession, lastEntry, compareSessions } from '../lib/records.js';
 import { esc } from '../lib/html.js';
+import { icon } from '../lib/icons.js';
 
 const arrow = { up: ' ↑', down: ' ↓', same: '' };
 
@@ -14,7 +15,7 @@ export function dayView() {
   if (!done) return h + '<p class="noent">この日はジムの記録がありません。</p><button class="primary" id="check">この日ジムに行った</button></div>';
 
   h += '<div><p class="plabel">鍛えた部位（いくつでも選べます）</p><div class="chips">';
-  h += state.parts.map((p) => { const on = parts.includes(p); return `<button class="chip${on ? ' on' : ''}" data-part="${esc(p)}" aria-pressed="${on}">${esc(p)}</button>`; }).join('');
+  h += state.parts.map((p) => { const on = parts.includes(p); return `<button class="chip${on ? ' on' : ''}" data-part="${esc(p)}" aria-pressed="${on}">${on ? icon('check', 'ck') : ''}${esc(p)}</button>`; }).join('');
   if (!ui.addingPart) h += '<button class="chip add" id="addOpen">＋ 部位を追加</button>';
   h += '</div>';
   if (ui.addingPart) h += '<form class="addpart" id="addForm"><input id="newPart" maxlength="10" placeholder="例：ふくらはぎ" aria-label="追加する部位の名前"><button type="submit">追加</button></form>';

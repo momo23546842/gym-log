@@ -3,15 +3,29 @@ import { app, render, setRenderer, changed, closeForm, emptyDraft } from './app.
 import { fromKey, toKey } from './lib/dates.js';
 import { setsOf, detailText, lastEntry, renameExercise, normalizeState } from './lib/records.js';
 import { toCsv, parseCsv, toText } from './lib/csv.js';
-import { headerView, calendarView } from './views/calendar.js';
+import { headerView, calendarView, sampleNotice } from './views/calendar.js';
 import { dayView, previousHint } from './views/day.js';
 import { exercisesView } from './views/exercises.js';
-import { backupView, backupMessage } from './views/backup.js';
+import { backupView, statusView, backupMessage } from './views/backup.js';
+import { navView, topbarView } from './views/nav.js';
+import { playCheckFx } from './checkFx.js';
 
 const root = document.getElementById('app');
 
+const nav = document.getElementById('bnav');
+
+/** What each screen shows. Sub-screens get a top bar with a back button. */
+const SCREEN_VIEWS = {
+  home: () => headerView() + calendarView() + dayView(),
+  rec: () => dayView(),
+  ana: () => exercisesView() + backupView(),
+  set: () => (app.state.sample ? sampleNotice() : '') + backupView(),
+};
+
 setRenderer(() => {
-  root.innerHTML = headerView() + calendarView() + dayView() + exercisesView() + backupView();
+  const { screen } = app.ui;
+  root.innerHTML = (screen === 'home' ? '' : topbarView()) + SCREEN_VIEWS[screen]() + statusView();
+  nav.innerHTML = navView();
   if (app.ui.addingPart) document.getElementById('newPart')?.focus();
 });
 
@@ -38,6 +52,16 @@ function showDayCard() {
   if (!card) return;
   const r = card.getBoundingClientRect();
   if (r.top > window.innerHeight - 120 || r.top < 0) card.scrollIntoView({ behavior: motion(), block: 'start' });
+}
+
+/** Switch screens from the bottom nav (or the header / back buttons). */
+function go(screen) {
+  if (ui.screen !== screen) {
+    ui.screen = screen;
+    ui.addingPart = false; ui.renaming = false; ui.confirmExRemove = false; ui.confirmUncheck = null;
+    render();
+  }
+  window.scrollTo(0, 0);
 }
 
 function selectDay(k) {
@@ -69,7 +93,13 @@ function downloadCsv() {
 
 /** id → handler for buttons identified by id */
 const byId = {
-  checkToday: () => toggleDay(app.todayKey),
+  checkToday: (e) => {
+    const was = !!S().days[app.todayKey];
+    toggleDay(app.todayKey);
+    playCheckFx(e, was, !!S().days[app.todayKey]);
+  },
+  goHome: () => go('home'),
+  goAna: () => go('ana'),
   check: () => toggleDay(ui.sel),
   prev: () => { ui.view = new Date(ui.view.getFullYear(), ui.view.getMonth() - 1, 1); render(); },
   next: () => { ui.view = new Date(ui.view.getFullYear(), ui.view.getMonth() + 1, 1); render(); },
@@ -123,7 +153,8 @@ const byId = {
 /** data-attribute → handler for buttons that carry a value */
 const byData = [
   ['day', (v) => selectDay(v)],
-  ['goto', (v) => selectDay(v)],
+  ['goto', (v) => { ui.screen = 'home'; selectDay(v); }],
+  ['nav', (v) => go(v)],
   ['delent', (v, el) => {
     if (el.dataset.c === '0') { el.dataset.c = '1'; el.textContent = '本当に消す'; return; }
     const list = S().logs[ui.sel];
@@ -164,7 +195,7 @@ document.addEventListener('click', (e) => {
     if (el) { fn(el.dataset[name], el); return; }
   }
   const el = e.target.closest('[id]');
-  if (el && byId[el.id]) byId[el.id]();
+  if (el && byId[el.id]) byId[el.id](e);
 });
 
 // Typing goes into the draft so a redraw never loses it.
